@@ -1,6 +1,6 @@
 # BWH_safetyreport
 
-This code contained in this repository is distributed under the GNU v3 license.  No support or guarrantees are offered for this software.
+This code contained in this repository is distributed under the GPL v3 license.  No support or guarrantees are offered for this software.
 
 This software was developed by the Brigham and Women's Department of Medicine Quality and Safety Team.  All code as well as code comments contained in Rmd file.  This is best used by individual familiar with R and R studio (data analysts at most healthcare systems typically have this skill set).
 
