@@ -1,0 +1,110 @@
+---
+title: "COVID Dx"
+author: "Lin Shen"
+date: "November 10, 2020"
+output: html_document
+---
+
+```{r} 
+# Load dependencies
+# This chunk of code checks for the library dependencies of tidyverse, readxl, and writexl and either installs them or loads them.  Copyright for the  libraries are owned by their respective owners.
+
+packages = c("tidyverse", "readxl",
+             "writexl")
+
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+```
+
+```{r}
+# This function is used for keyword matching
+
+keyword_match<-function(keywords, input, columns, output_name) {
+    output<-input %>% mutate(output_name = ifelse(grepl(paste(keywords,collapse="|")),  paste(column_tomatch,collapse="|"), ignore.case = TRUE), 1, 0)
+}
+```
+
+```{r}
+#Load input file 
+raw_data<-read_xlsx("path to your input file here")
+working_data<-raw_data
+
+```
+
+```{r}
+# Creation of categories and lexicon
+# Lists of terms to search for are stored as character variables here.
+
+# Concepts are the names of the categories.  Make sure the names in this list match the names of the variables you use as each for the variables containing the actual keywords
+
+concepts<-c("COVID", "Communication", "Testing", "Orders", "Precautions", "Workflow_gap", "Patient_condition", "Symptoms",  "PPE", "Diagnostic", "Care_plan")
+
+
+#Keywords for each category.  You can modify these directly.  If a new category is to be added altogether, it must be added to the concepts list above.
+
+COVID<-c("COVID", "corona")
+Communication<-c(" call", "video", "virtual", "VV", "misunderst", "telemedicine", "hear", "ipad", "communic", "phone")
+Testing<-c("test", "swab", "PCR", "rule out", "r/o", "ruled out", "collect", "sample", "positive", "negative", "result")
+Orders<-c("order", "referral", "reorder", "responding clinician", " RIC ")
+Precautions<-c("enhanced respiratory", "pressure room", "aerosol", "procedure", "risk", "precaution")
+Workflow_gap<-c("not done", "lost", "not test", "not print", "never received", "did not come in", "missed", "cancel", "delay", "lack of", "dropped the ball", "quality")
+Patient_condition<-c("worsening", "symptom", " O2", "oxygen", "ICU")
+Symptoms<-c("throat", "cough", "runny nose", " SOB", "shortness of", "fever", "chill", "rigor", "loss of", "flu-like")
+Care_plan<-c("inpatient", "equity", "standard of care", "intubate")
+Diagnostic<-c("diagno", "missed", "delay", "triag")
+PPE<-c("N95", "N-95", "mask", " PPE", "glove", "gown", "shield", "protection")
+
+```
+
+
+```{r}
+#This loop will search for terms in the specified columns and create new columns to indicate if matches were found.  Each new column will correspond to the "concepts" listed above.  The column will indicate with a 1 if a match was found or 0 if match was not found.
+
+#To search for additional columns, add the following code: | grepl(paste(get(val),collapse="|"), `name of additional column`, ignore.case = TRUE) before: , 1, 0))
+#Change the column names to ones appropriate to your data
+
+
+for (val in concepts)
+{
+working_data<-working_data %>%
+mutate(!! paste(val) := ifelse(grepl(paste(get(val),collapse="|"), `Name of first column here`, ignore.case = TRUE) | grepl(paste(get(val),collapse="|"), `Name of second column`, ignore.case = TRUE) , 1, 0))
+}
+
+working_data$flag_count <- rowSums(working_data[ , 16:ncol(working_data)])
+```
+
+
+
+```{r}
+#Logic to drive output
+
+#Example code below, you can use the filtering option and the newly created columns to come up with your own custom logic
+
+#Finds safety reports with a positive flag in either diagnostic or PPE, but not COVID
+temp_view_1<-working_data %>% filter(Diagnostic == 1 | PPE == 1, COVID == 0) 
+colSums(temp_view_1[,c(concepts)])
+
+#Finds safety reports with a sum of flags greater to or equal to 6, and no explicit mentioned of COVID, which was the threshold we used at our institution to flag patients for review as part of a specific workflow
+temp_view_2<-working_data %>% filter(flag_count >= 6, COVID == 0) 
+colSums(temp_view_2[,c(concepts)])
+
+#Finds safety reports with explicit mention of COVID
+temp_view_3<-working_data %>% filter(COVID == 1) 
+colSums(temp_view_3[,c(concepts)])
+
+```
+
+```{r}
+#Output to Excel
+write_xlsx(temp_view_1, "output file path")
+```
+
+
+
